@@ -1,13 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, Image, Pressable, Modal, TextInput, Platform } from 'react-native';
+import { Text, View, Image, Pressable, Modal, TextInput } from 'react-native';
 import { useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import { buscarHistorico, salvarHistorico, buscarToken } from '../services/storage';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useHistoricoStore } from '../stores/useHistoricoStore';
 
 export default function GeradorDeSenha({ navigation }) {
     const [senha, setSenha] = useState('Gere sua senha!');
     const [modalVisible, setModalVisible] = useState(false);
     const [nomeAplicativo, setNomeAplicativo] = useState('');
+
+    const token = useAuthStore((s) => s.token);
+    const adicionarSenha = useHistoricoStore((s) => s.adicionarSenha);
 
     const generatePassword = () => {
         let password = '';
@@ -38,38 +42,7 @@ export default function GeradorDeSenha({ navigation }) {
     const criarSenha = async () => {
         if (!nomeAplicativo || !nomeAplicativo.trim() || !senha || senha === 'Gere sua senha!') return;
 
-        const historicoAtual = await buscarHistorico();
-
-        const novoItem = {
-            id: Date.now().toString(),
-            nomeAplicativo: nomeAplicativo.trim(),
-            senha,
-        };
-
-        const novoHistorico = [novoItem, ...historicoAtual];
-        await salvarHistorico(novoHistorico);
-
-        try {
-            const token = await buscarToken();
-            if (token) {
-                const API_BASE = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-                const apiUrl = `${API_BASE}/historico`;
-
-                const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-
-                const res = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ nomeAplicativo: novoItem.nomeAplicativo, senha: novoItem.senha }),
-                });
-
-                if (res.status === 401) {
-                    console.log('Usuário não autenticado ao salvar histórico no backend.');
-                }
-            }
-        } catch (e) {
-            console.log('Erro ao salvar histórico no backend:', e);
-        }
+        await adicionarSenha(token, nomeAplicativo, senha);
 
         setModalVisible(false);
         setNomeAplicativo('');

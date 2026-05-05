@@ -9,7 +9,7 @@ import SignIn from './screens/SignIn';
 import SignUp from './screens/SignUp';
 import GeradorDeSenha from './screens/GeradorDeSenha';
 import Historico from './screens/Historico';
-import { buscarToken, removerToken } from './services/storage';
+import { useAuthStore } from './stores/useAuthStore';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,25 +17,16 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
   const [rotaInicial, setRotaInicial] = useState('SignIn');
 
+  const token = useAuthStore((s) => s.token);
+  const removerToken = useAuthStore((s) => s.removerToken);
+
   useEffect(() => {
-    async function verificarLogin() {
-      try {
-        const token = await buscarToken();
-
-        if (token) {
-          setRotaInicial('GeradorDeSenha');
-        } else {
-          setRotaInicial('SignIn');
-        }
-      } catch (error) {
-        console.error('Erro ao verificar token:', error);
-        setRotaInicial('SignIn');
-      } finally {
-        setCarregando(false);
-      }
+    if (token) {
+      setRotaInicial('GeradorDeSenha');
+    } else {
+      setRotaInicial('SignIn');
     }
-
-    verificarLogin();
+    setCarregando(false);
   }, []);
 
   if (carregando) {
@@ -79,7 +70,7 @@ export default function App() {
             headerRight: () => (
               <Pressable
                 onPress={async () => {
-                  await removerToken();
+                  removerToken();
 
                   navigation.reset({
                     index: 0,

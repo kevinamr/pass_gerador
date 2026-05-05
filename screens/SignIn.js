@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, Image, Platform } from 'react-native';
-import { salvarToken } from '../services/storage';
+import { useAuthStore } from '../stores/useAuthStore';
 
 export default function SignIn({ navigation, route }) {
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [carregando, setCarregando] = useState(false);
     const [erroLogin, setErroLogin] = useState('');
+
+    const salvarToken = useAuthStore((s) => s.salvarToken);
 
     useEffect(() => {
         if (route.params?.email) {
@@ -27,16 +29,12 @@ export default function SignIn({ navigation, route }) {
 
     const handleChangeEmail = (valor) => {
         setEmail(valor);
-        if (erroLogin) {
-            setErroLogin('');
-        }
+        if (erroLogin) setErroLogin('');
     };
 
     const handleChangeSenha = (valor) => {
         setSenha(valor);
-        if (erroLogin) {
-            setErroLogin('');
-        }
+        if (erroLogin) setErroLogin('');
     };
 
     const API_BASE = Platform.OS === 'android'
@@ -50,9 +48,7 @@ export default function SignIn({ navigation, route }) {
 
             const response = await fetch(`${API_BASE}/signin`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: email.trim(),
                     senha: senha.trim(),
@@ -67,14 +63,11 @@ export default function SignIn({ navigation, route }) {
             }
 
             if (!response.ok) {
-                console.log('ERRO LOGIN:', data);
-                setErroLogin(
-                    data.erro || data.mensagem || 'E-mail ou senha inválidos.'
-                );
+                setErroLogin(data.erro || data.mensagem || 'E-mail ou senha inválidos.');
                 return;
             }
 
-            await salvarToken(data.token);
+            salvarToken(data.token);
 
             navigation.reset({
                 index: 0,
